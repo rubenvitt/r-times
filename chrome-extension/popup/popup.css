@@ -99,6 +99,15 @@ h1 {
     background-color: var(--secondary-hover);
 }
 
+.rtime {
+    background-color: #3498db;
+    color: white;
+    margin-top: 8px;
+}
+
+.rtime:hover {
+    background-color: #2980b9;
+}
 .button:disabled {
     opacity: 0.6;
     cursor: not-allowed;

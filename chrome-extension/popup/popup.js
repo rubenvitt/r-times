@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const importButton = document.getElementById('importButton');
     const fillTableButton = document.getElementById('fillTableButton');
+    const openRTimeButton = document.getElementById('openRTimeButton');
     const statusEl = document.getElementById('status');
     const dataPreviewEl = document.getElementById('data-preview');
     const openSettingsLink = document.getElementById('openSettingsLink');
@@ -56,6 +57,25 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Wir könnten das Popup schließen, aber das passiert automatisch, wenn der Benutzer klickt
+        });
+    }
+
+    // R-Time App öffnen
+    openRTimeButton.addEventListener('click', openRTimePage);
+
+    function openRTimePage() {
+        console.log('Öffne R-Time App...');
+
+        chrome.runtime.sendMessage({ action: 'openRTimePage' }, (response) => {
+            if (chrome.runtime.lastError) {
+                console.error('Fehler beim Öffnen der R-Time App:', chrome.runtime.lastError.message);
+                statusEl.textContent = 'Fehler beim Öffnen der R-Time App';
+                statusEl.className = 'status error';
+                return;
+            }
+
+            console.log('R-Time App Antwort:', response);
+            // Popup schließt automatisch beim Klick
         });
     }
 

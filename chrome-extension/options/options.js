@@ -1,14 +1,16 @@
 // Warten bis das DOM vollständig geladen ist
 document.addEventListener('DOMContentLoaded', () => {
     const odooUrlInput = document.getElementById('odooUrl');
+    const rTimeUrlInput = document.getElementById('rTimeUrl');
     const saveButton = document.getElementById('saveButton');
     const resetButton = document.getElementById('resetButton');
     const statusElement = document.getElementById('status');
 
-    // Standardwert für die URL (wird verwendet, falls noch keine gespeichert wurde)
-    const DEFAULT_URL = "https://odoo.innoq.io/innoq/users/";
+    // Standardwerte für die URLs (werden verwendet, falls noch keine gespeichert wurden)
+    const DEFAULT_ODOO_URL = "https://odoo.innoq.io/innoq/users/";
+    const DEFAULT_RTIME_URL = "https://r-time.rubeen.dev";
 
-    // Gespeicherte URL aus dem Storage laden
+    // Gespeicherte URLs aus dem Storage laden
     loadSavedSettings();
 
     // Event-Listener für den Speichern-Button
@@ -21,8 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
      * Lädt die gespeicherten Einstellungen aus dem Chrome Storage
      */
     function loadSavedSettings() {
-        chrome.storage.sync.get(['odooUrl'], (result) => {
-            odooUrlInput.value = result.odooUrl || DEFAULT_URL;
+        chrome.storage.sync.get(['odooUrl', 'rTimeUrl'], (result) => {
+            odooUrlInput.value = result.odooUrl || DEFAULT_ODOO_URL;
+            rTimeUrlInput.value = result.rTimeUrl || DEFAULT_RTIME_URL;
         });
     }
 
@@ -31,15 +34,21 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function saveSettings() {
         const odooUrl = odooUrlInput.value.trim();
+        const rTimeUrl = rTimeUrlInput.value.trim();
 
-        // Einfache Validierung der URL
+        // Einfache Validierung der URLs
         if (!odooUrl || !isValidUrl(odooUrl)) {
-            showStatus('Bitte gib eine gültige URL ein.', 'error');
+            showStatus('Bitte gib eine gültige Odoo URL ein.', 'error');
+            return;
+        }
+
+        if (!rTimeUrl || !isValidUrl(rTimeUrl)) {
+            showStatus('Bitte gib eine gültige R-Time URL ein.', 'error');
             return;
         }
 
         // Einstellungen speichern
-        chrome.storage.sync.set({ odooUrl }, () => {
+        chrome.storage.sync.set({ odooUrl, rTimeUrl }, () => {
             showStatus('Einstellungen gespeichert!', 'success');
         });
     }
@@ -48,8 +57,12 @@ document.addEventListener('DOMContentLoaded', () => {
      * Setzt die Einstellungen auf die Standardwerte zurück
      */
     function resetSettings() {
-        odooUrlInput.value = DEFAULT_URL;
-        chrome.storage.sync.set({ odooUrl: DEFAULT_URL }, () => {
+        odooUrlInput.value = DEFAULT_ODOO_URL;
+        rTimeUrlInput.value = DEFAULT_RTIME_URL;
+        chrome.storage.sync.set({
+            odooUrl: DEFAULT_ODOO_URL,
+            rTimeUrl: DEFAULT_RTIME_URL
+        }, () => {
             showStatus('Einstellungen zurückgesetzt!', 'success');
         });
     }
