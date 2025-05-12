@@ -1,11 +1,11 @@
 <script lang="ts">
   // Imports zuerst
   import {
-    ChevronDown,
-    ClipboardDocument,
-    Clock,
-    DocumentText,
-    PlusCircle,
+      ChevronDown,
+      ClipboardDocument,
+      Clock,
+      DocumentText,
+      PlusCircle,
   } from "@steeze-ui/heroicons";
   import { Icon } from "@steeze-ui/svelte-icon";
   import { onMount } from "svelte";
@@ -120,13 +120,8 @@
   // Kopiert alle Aktivitäten eines Monats als JSON
   function copyMonthAsJson(month: MonthGroup) {
     const jsonData = month.days.map((day) => {
-      // Aktivitäten für einen Tag zusammenfassen (wie bei copyActivities)
-      const activitiesText = day.activities
-        .map((act) => {
-          const notes = act.notes.join(", ");
-          return notes ? `${act.title} # ${notes}` : act.title;
-        })
-        .join("; ");
+      // Aktivitäten für einen Tag zusammenfassen mit Gruppierung von Meeting-Einträgen
+      const activitiesText = formatActivitiesWithMeetingGroups(day.activities);
 
       return {
         date: day.date,
@@ -141,13 +136,8 @@
   // Kopiert alle Aktivitäten als JSON
   function copyAllAsJson() {
     const jsonData = days.map((day) => {
-      // Aktivitäten für einen Tag zusammenfassen (wie bei copyActivities)
-      const activitiesText = day.activities
-        .map((act) => {
-          const notes = act.notes.join(", ");
-          return notes ? `${act.title} # ${notes}` : act.title;
-        })
-        .join("; ");
+      // Aktivitäten für einen Tag zusammenfassen mit Gruppierung von Meeting-Einträgen
+      const activitiesText = formatActivitiesWithMeetingGroups(day.activities);
 
       return {
         date: day.date,
@@ -157,6 +147,42 @@
     });
 
     navigator.clipboard.writeText(JSON.stringify(jsonData, null, 2));
+  }
+
+  // Formatiert Aktivitäten und gruppiert dabei Meeting-Einträge mit Klammern
+  function formatActivitiesWithMeetingGroups(activities: Activity[]): string {
+    // Gruppiere Meeting-Einträge für Zusammenfassung
+    const meetingGroups = new Map<string, string[]>();
+    const regularActivities: Activity[] = [];
+    
+    // Identifiziere Meetings-Einträge und gruppiere sie nach Basisnamen
+    activities.forEach(act => {
+      const meetingMatch = act.title.match(/^(.+)\((.+)\)$/);
+      if (meetingMatch && meetingMatch[1] === "Meetings") {
+        // Extrahiere den Basisteil und den Klammerinhalt
+        const [, baseName, bracketContent] = meetingMatch;
+        if (!meetingGroups.has(baseName)) {
+          meetingGroups.set(baseName, []);
+        }
+        meetingGroups.get(baseName)!.push(bracketContent);
+      } else {
+        regularActivities.push(act);
+      }
+    });
+    
+    // Formatiere normale Aktivitäten
+    const regularLines = regularActivities.map((act) => {
+      const notes = act.notes.join(", ");
+      return notes ? `${act.title} # ${notes}` : act.title;
+    });
+    
+    // Formatiere zusammengefasste Meeting-Gruppen
+    const meetingLines = Array.from(meetingGroups.entries()).map(([baseName, contents]) => {
+      return `${baseName}(${contents.join(", ")})`;
+    });
+    
+    // Kombiniere alle Aktivitäten und gib sie zurück
+    return [...meetingLines, ...regularLines].join("; ");
   }
 
   // Formatiert den Monatsnamen für die Anzeige
@@ -377,13 +403,12 @@
   function copyDuration(day: DayEntry) {
     navigator.clipboard.writeText(formatMins(day.minutes));
   }
+  
   function copyActivities(day: DayEntry) {
-    const lines = day.activities.map((act) => {
-      const notes = act.notes.join(", ");
-      return notes ? `${act.title} # ${notes}` : act.title;
-    });
-    navigator.clipboard.writeText(lines.join("; "));
+    const formattedActivities = formatActivitiesWithMeetingGroups(day.activities);
+    navigator.clipboard.writeText(formattedActivities);
   }
+  
   function copyActivity(act: Activity) {
     const notesStr = act.notes.join(", ");
     navigator.clipboard.writeText(
