@@ -32,6 +32,28 @@
       isCritical: boolean;
     }[];
     isExpanded: boolean;
+    travelFee: boolean;
+  }
+
+  const TRAVEL_KEYWORDS = [
+    "präsenztag",
+    "präsenz",
+    "vor ort",
+    "vorort",
+    "dienstreise",
+    "onsite",
+    "on-site",
+    "on site",
+  ];
+
+  function detectTravelFee(activities: Activity[]): boolean {
+    for (const act of activities) {
+      const haystack = (act.title + " " + act.notes.join(" ")).toLowerCase();
+      for (const kw of TRAVEL_KEYWORDS) {
+        if (haystack.includes(kw)) return true;
+      }
+    }
+    return false;
   }
 
   // Interface für Metadaten
@@ -79,7 +101,10 @@
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
-        days = parsed.days || [];
+        days = (parsed.days || []).map((d: DayEntry) => ({
+          ...d,
+          travelFee: d.travelFee ?? false,
+        }));
         metadata = parsed.metadata || null;
         rounding = parsed.rounding || 15;
 
@@ -127,6 +152,7 @@
         date: day.date,
         hours: formatMins(day.minutes),
         text: activitiesText,
+        travelFee: day.travelFee,
       };
     });
 
@@ -143,6 +169,7 @@
         date: day.date,
         hours: formatMins(day.minutes),
         text: activitiesText,
+        travelFee: day.travelFee,
       };
     });
 
@@ -366,14 +393,16 @@
           });
         }
 
+        const sortedActivities = activities.sort((a, b) => b.minutes - a.minutes);
         return {
           date,
           minutes: total,
-          activities: activities.sort((a, b) => b.minutes - a.minutes), // Nach Dauer sortieren
+          activities: sortedActivities, // Nach Dauer sortieren
           hasIncompleteActivities,
           hasCriticalActivities,
           missingEntries,
           isExpanded: false,
+          travelFee: detectTravelFee(sortedActivities),
         };
       })
       .sort((a, b) => a.date.localeCompare(b.date));
@@ -422,6 +451,23 @@
     days = [...days]; // Ensure reactivity
     saveToStorage(); // Speichern bei Änderungen
   }
+
+  function toggleTravelFee(day: DayEntry) {
+    day.travelFee = !day.travelFee;
+    days = [...days];
+    saveToStorage();
+  }
+
+  function formatDayChip(isoDate: string): string {
+    const date = new Date(isoDate);
+    return date.toLocaleDateString("de-DE", {
+      weekday: "short",
+      day: "2-digit",
+      month: "2-digit",
+    });
+  }
+
+  $: travelFeeCount = days.filter((d) => d.travelFee).length;
 </script>
 
 <main class="min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
@@ -574,6 +620,35 @@
             </button>
           {/if}
         </div>
+      </div>
+    {/if}
+
+    {#if days.length > 0}
+      <div class="mb-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+          Warst du auf Dienstreise?
+        </h2>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          Tage anklicken, an denen Reisekosten anfallen. Tage mit Triggerwörtern
+          („Präsenztag", „vor Ort", „Dienstreise", „Onsite") sind automatisch vorgemerkt.
+        </p>
+        <div class="flex flex-wrap gap-2 mt-3">
+          {#each days as day}
+            <button
+              type="button"
+              on:click={() => toggleTravelFee(day)}
+              aria-pressed={day.travelFee}
+              class="px-3 py-1.5 rounded-full text-sm border transition-colors {day.travelFee
+                ? 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700'
+                : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600'}"
+            >
+              {day.travelFee ? "✓ " : ""}{formatDayChip(day.date)}
+            </button>
+          {/each}
+        </div>
+        <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+          {travelFeeCount} von {days.length} Tagen als Dienstreise markiert.
+        </p>
       </div>
     {/if}
 

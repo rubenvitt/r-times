@@ -188,6 +188,19 @@ async function fillRowWithData(row, data) {
     hoursInput.dispatchEvent(new Event('change', { bubbles: true }));
     textInput.dispatchEvent(new Event('change', { bubbles: true }));
 
+    // Travel-Fee-Checkbox setzen, falls für diesen Tag markiert
+    if (data.travelFee === true) {
+        const tfeeInput = row.querySelector('input.tfeeinput');
+        if (tfeeInput && !tfeeInput.disabled) {
+            if (!tfeeInput.checked) {
+                tfeeInput.checked = true;
+                tfeeInput.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            tfeeInput.classList.add('innoq-highlight');
+            setTimeout(() => tfeeInput.classList.remove('innoq-highlight'), 2000);
+        }
+    }
+
     // Kurze Pause, um visuelles Feedback zu geben
     await new Promise(resolve => setTimeout(resolve, 100));
 
